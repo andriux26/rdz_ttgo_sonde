@@ -1,3 +1,5 @@
+#pragma once
+#include "color_compat.h"
 
 // Configuration flags for including/excluding fuctionality from the compiled binary
 // set flag to 0 for exclude/1 for include
