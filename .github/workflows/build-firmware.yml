@@ -1,21 +1,46 @@
-name: Build firmware
+name: Build firmware and USB flasher
 
 on:
   workflow_dispatch:
   push:
     branches: [dev2]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install platformio
-      - run: pio run -e ttgo-lora32 -t firmware
-      - uses: actions/upload-artifact@v4
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build complete firmware image
+        run: pio run -e ttgo-lora32 -t firmware
+
+      - name: Prepare USB flasher files
+        run: cp .pio/build/ttgo-lora32/firmware-image.bin docs/firmware-image.bin
+
+      - name: Upload firmware files
+        uses: actions/upload-artifact@v4
         with:
           name: rdz-ttgo-sonde-dev2-firmware
           path: |
@@ -23,3 +48,15 @@ jobs:
             .pio/build/ttgo-lora32/firmware.bin
             .pio/build/ttgo-lora32/littlefs.bin
             .pio/build/ttgo-lora32/fonts.bin
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload USB flasher page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy USB flasher page
+        id: deployment
+        uses: actions/deploy-pages@v4
