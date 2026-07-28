@@ -4,9 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches: [dev2]
+    paths-ignore:
+      - 'firmware/**'
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -24,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: dev2
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,18 +40,41 @@ jobs:
       - name: Build complete firmware image
         run: pio run -e ttgo-lora32 -t firmware
 
-      - name: Prepare USB flasher files
-        run: cp .pio/build/ttgo-lora32/firmware-image.bin docs/firmware-image.bin
+      - name: Prepare latest firmware directory
+        run: |
+          mkdir -p firmware
+          cp .pio/build/ttgo-lora32/firmware-image.bin firmware/firmware-image.bin
+          cp .pio/build/ttgo-lora32/firmware.bin firmware/firmware.bin
+          cp .pio/build/ttgo-lora32/littlefs.bin firmware/littlefs.bin
+          cp .pio/build/ttgo-lora32/fonts.bin firmware/fonts.bin
+          cp .pio/build/ttgo-lora32/firmware-image.bin docs/firmware-image.bin
+          printf '%s\n' "${GITHUB_SHA}" > firmware/version.txt
+          printf '{\n  "branch": "dev2",\n  "commit": "%s",\n  "built_at_utc": "%s"\n}\n' \
+            "${GITHUB_SHA}" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > firmware/build-info.json
+
+      - name: Save latest firmware in repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add firmware/
+          if git diff --cached --quiet; then
+            echo "Firmware files have not changed."
+          else
+            git commit -m "Update latest firmware binaries [skip ci]"
+            git push origin HEAD:dev2
+          fi
 
       - name: Upload firmware files
         uses: actions/upload-artifact@v4
         with:
           name: rdz-ttgo-sonde-dev2-firmware
           path: |
-            .pio/build/ttgo-lora32/firmware-image.bin
-            .pio/build/ttgo-lora32/firmware.bin
-            .pio/build/ttgo-lora32/littlefs.bin
-            .pio/build/ttgo-lora32/fonts.bin
+            firmware/firmware-image.bin
+            firmware/firmware.bin
+            firmware/littlefs.bin
+            firmware/fonts.bin
+            firmware/version.txt
+            firmware/build-info.json
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
