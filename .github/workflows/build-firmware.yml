@@ -1,0 +1,25 @@
+name: Build firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev2]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install platformio
+      - run: pio run -e ttgo-lora32 -t firmware
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdz-ttgo-sonde-dev2-firmware
+          path: |
+            .pio/build/ttgo-lora32/firmware-image.bin
+            .pio/build/ttgo-lora32/firmware.bin
+            .pio/build/ttgo-lora32/littlefs.bin
+            .pio/build/ttgo-lora32/fonts.bin
