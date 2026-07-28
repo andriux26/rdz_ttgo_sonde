@@ -1,0 +1,16 @@
+{
+  "name": "RDZ TTGO Sonde",
+  "version": "dev2",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "firmware-image.bin",
+          "offset": 4096
+        }
+      ]
+    }
+  ]
+}
