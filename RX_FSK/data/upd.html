@@ -1,48 +1,37 @@
-<html><head>
-<link rel="stylesheet" type="text/css" href="style.css">
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>Andriuxa OTA atnaujinimas</title>
 </head>
 <body>
+  <form action="update.html" method="post">
+    <p>Dabar įdiegta: <strong>%FULLNAMEID%</strong></p>
+    <p>Naujausia tavo GitHub versija: <strong id="develDiv">tikrinama...</strong></p>
+    <input type="submit" name="dev2" value="Atnaujinti iš Andriuxa GitHub">
+  </form>
 
-<form action="update.html" method="post">
-<p>Currently installed: %FULLNAMEID%</p>
-<p>Available Andriuxa dev2: <span id="develDiv">(...checking...)</span></p>
-<input type="submit" name="dev2" value="Dev-Update"><br>
-<div id="local-update-section">
-  <input type="submit" name="local" value="Local-Update"> from
-  <input type="text" name="url" value="%LOCAL_UPDATES%" size="64"><br>
-</div>
-</form>
+  <p>Atnaujinimas atsisiunčia tik iš:</p>
+  <p><tt>https://andriux26.github.io/rdz_ttgo_sonde/</tt></p>
+  <p>Bus atnaujinta interneto sąsaja ir pati ESP32 programa.</p>
 
-<p>Versija tikrinama tavo GitHub Pages puslapyje.</p>
-<p id="local-update-info">
-The local-update feature is for developers and requires a path containing
-<tt>update.fs.bin</tt> and <tt>update.ino.bin</tt>.
-</p>
+  <script>
+    const develInfo = document.getElementById('develDiv');
+    const versionUrl = 'https://andriux26.github.io/rdz_ttgo_sonde/update-info.html?t=' + Date.now();
 
-<script>
-const localEnabled = "%LOCAL_UPDATES%";
-
-document.addEventListener("DOMContentLoaded", () => {
-  if (localEnabled.trim() === "") {
-    const localUpdateSection = document.getElementById("local-update-section");
-    const localUpdateInfo = document.getElementById("local-update-info");
-    if (localUpdateSection) localUpdateSection.style.display = "none";
-    if (localUpdateInfo) localUpdateInfo.style.display = "none";
-  }
-});
-
-const develInfo = document.getElementById('develDiv');
-const versionUrl = 'https://andriux26.github.io/rdz_ttgo_sonde/update-info.html?t=' + Date.now();
-fetch(versionUrl, { cache: 'no-store' })
-  .then(response => {
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    return response.text();
-  })
-  .then(text => {
-    develInfo.textContent = text.replace(/<[^>]*>/g, '').trim();
-  })
-  .catch(error => {
-    develInfo.textContent = 'Nepavyko patikrinti: ' + error.message;
-  });
-</script>
-</body></html>
+    fetch(versionUrl, { cache: 'no-store' })
+      .then(response => {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+      })
+      .then(text => {
+        develInfo.textContent = text.replace(/<[^>]*>/g, '').trim();
+      })
+      .catch(error => {
+        develInfo.textContent = 'nepavyko patikrinti: ' + error.message;
+      });
+  </script>
+</body>
+</html>
