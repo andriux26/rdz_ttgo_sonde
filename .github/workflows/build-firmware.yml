@@ -37,17 +37,81 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Configure firmware to use my GitHub Pages OTA only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('RX_FSK/RX_FSK.ino')
+          text = path.read_text(encoding='utf-8')
+
+          text = text.replace(
+              '#include <WiFi.h>\n',
+              '#include <WiFi.h>\n#include <WiFiClientSecure.h>\n',
+              1,
+          )
+
+          text = text.replace(
+              'const char *updateHost = "rdzsonde.mooo.com";\n'
+              'int updatePort = 80;\n\n'
+              'const char *updatePrefixM = "/main/";\n'
+              'const char *updatePrefixD = "/dev2/";',
+              'const char *updateHost = "andriux26.github.io";\n'
+              'int updatePort = 443;\n\n'
+              'const char *updatePrefixM = "/rdz_ttgo_sonde/";\n'
+              'const char *updatePrefixD = "/rdz_ttgo_sonde/";',
+              1,
+          )
+
+          text = text.replace(
+              'WiFiClient client;',
+              'WiFiClientSecure client;',
+              1,
+          )
+
+          text = text.replace(
+              'void execOTA() {\n',
+              'void execOTA() {\n  // GitHub Pages uses HTTPS. Certificate validation is disabled because\n'
+              '  // this ESP32 build does not carry a maintained CA bundle.\n'
+              '  client.setInsecure();\n'
+              '  client.setTimeout(15000);\n',
+              1,
+          )
+
+          required = [
+              '#include <WiFiClientSecure.h>',
+              'const char *updateHost = "andriux26.github.io";',
+              'int updatePort = 443;',
+              'WiFiClientSecure client;',
+              'client.setInsecure();',
+          ]
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f'OTA patch failed, missing: {missing}')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Build complete firmware image
         run: pio run -e ttgo-lora32 -t firmware
 
-      - name: Prepare latest firmware directory
+      - name: Prepare firmware and OTA files
         run: |
           mkdir -p firmware docs
+
           cp .pio/build/ttgo-lora32/firmware-image.bin firmware/firmware-image.bin
           cp .pio/build/ttgo-lora32/firmware.bin firmware/firmware.bin
           cp .pio/build/ttgo-lora32/littlefs.bin firmware/littlefs.bin
           cp .pio/build/ttgo-lora32/fonts.bin firmware/fonts.bin
+
+          # Complete USB image used by ESP Web Tools.
           cp .pio/build/ttgo-lora32/firmware-image.bin docs/firmware-image.bin
+
+          # Files expected by the built-in rdzTTGO OTA updater.
+          cp .pio/build/ttgo-lora32/firmware.bin docs/update.ino.bin
+          python3 scripts/makefsupdate.py RX_FSK/data > docs/update.fs.bin
+          cp docs/update.ino.bin firmware/update.ino.bin
+          cp docs/update.fs.bin firmware/update.fs.bin
 
           BASE_VERSION=$(sed -n 's/.*version_id = "\([^"]*\)".*/\1/p' RX_FSK/version.h)
           FS_MAJOR=$(sed -n 's/.*FS_MAJOR=\([0-9]*\).*/\1/p' RX_FSK/version.h)
@@ -82,17 +146,19 @@ jobs:
             firmware/firmware.bin
             firmware/littlefs.bin
             firmware/fonts.bin
+            firmware/update.ino.bin
+            firmware/update.fs.bin
             firmware/version.txt
             firmware/build-info.json
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload USB flasher page
+      - name: Upload USB flasher and OTA files
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
-      - name: Deploy USB flasher page
+      - name: Deploy USB flasher and OTA files
         id: deployment
         uses: actions/deploy-pages@v4
