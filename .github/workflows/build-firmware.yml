@@ -37,6 +37,17 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Install missing NetworkClientSecure library
+        run: |
+          rm -rf /tmp/arduino-esp32-3.1.0 /tmp/arduino-esp32.tar.gz
+          curl -L --fail --retry 3 \
+            https://github.com/espressif/arduino-esp32/archive/refs/tags/3.1.0.tar.gz \
+            -o /tmp/arduino-esp32.tar.gz
+          tar -xzf /tmp/arduino-esp32.tar.gz -C /tmp
+          mkdir -p lib
+          cp -R /tmp/arduino-esp32-3.1.0/libraries/NetworkClientSecure lib/NetworkClientSecure
+          test -f lib/NetworkClientSecure/src/NetworkClientSecure.h
+
       - name: Configure firmware to use my GitHub Pages OTA only
         run: |
           python3 - <<'PY'
@@ -47,7 +58,7 @@ jobs:
 
           text = text.replace(
               '#include <WiFi.h>\n',
-              '#include <WiFi.h>\n#include <WiFiClientSecure.h>\n',
+              '#include <WiFi.h>\n#include <NetworkClientSecure.h>\n',
               1,
           )
 
@@ -65,7 +76,7 @@ jobs:
 
           text = text.replace(
               'WiFiClient client;',
-              'WiFiClientSecure client;',
+              'NetworkClientSecure client;',
               1,
           )
 
@@ -79,10 +90,10 @@ jobs:
           )
 
           required = [
-              '#include <WiFiClientSecure.h>',
+              '#include <NetworkClientSecure.h>',
               'const char *updateHost = "andriux26.github.io";',
               'int updatePort = 443;',
-              'WiFiClientSecure client;',
+              'NetworkClientSecure client;',
               'client.setInsecure();',
           ]
           missing = [item for item in required if item not in text]
@@ -104,10 +115,7 @@ jobs:
           cp .pio/build/ttgo-lora32/littlefs.bin firmware/littlefs.bin
           cp .pio/build/ttgo-lora32/fonts.bin firmware/fonts.bin
 
-          # Complete USB image used by ESP Web Tools.
           cp .pio/build/ttgo-lora32/firmware-image.bin docs/firmware-image.bin
-
-          # Files expected by the built-in rdzTTGO OTA updater.
           cp .pio/build/ttgo-lora32/firmware.bin docs/update.ino.bin
           python3 scripts/makefsupdate.py RX_FSK/data > docs/update.fs.bin
           cp docs/update.ino.bin firmware/update.ino.bin
