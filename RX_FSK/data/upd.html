@@ -3,16 +3,9 @@
 </head>
 <body>
 
-
-<form action="update.html" method="post"><p>Currently installed: %FULLNAMEID%</p>
-<p>
-Available main: <span id="masterDiv">(...checking...)</span>
-
-<br>
-Available dev2: <span id="develDiv">(...checking...)</span>
-
-</p>
-<input type="submit" name="main" value="Main-Update"></input><br>
+<form action="update.html" method="post">
+<p>Currently installed: %FULLNAMEID%</p>
+<p>Available Andriuxa dev2: <span id="develDiv">(...checking...)</span></p>
 <input type="submit" name="dev2" value="Dev-Update"><br>
 <div id="local-update-section">
   <input type="submit" name="local" value="Local-Update"> from
@@ -20,11 +13,7 @@ Available dev2: <span id="develDiv">(...checking...)</span>
 </div>
 </form>
 
-<p>Note: If suffix is the same, update should work fully. If the number is
-different, update contains changes in the file system. A full re-flash is
-required to get all new features, but the update should not break anything.
-If the letter is different, a full re-flash is mandatory, update will not
-work.</p>
+<p>Versija tikrinama tavo GitHub Pages puslapyje.</p>
 <p id="local-update-info">
 The local-update feature is for developers and requires a path containing
 <tt>update.fs.bin</tt> and <tt>update.ino.bin</tt>.
@@ -35,7 +24,6 @@ const localEnabled = "%LOCAL_UPDATES%";
 
 document.addEventListener("DOMContentLoaded", () => {
   if (localEnabled.trim() === "") {
-    // Hide the local update section
     const localUpdateSection = document.getElementById("local-update-section");
     const localUpdateInfo = document.getElementById("local-update-info");
     if (localUpdateSection) localUpdateSection.style.display = "none";
@@ -43,20 +31,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-const masterInfo = document.getElementById('masterDiv');
 const develInfo = document.getElementById('develDiv');
-
-let request = new XMLHttpRequest();
-request.open('GET', 'http://rdzsonde.mooo.com/main/update-info.html');
-request.onload = function() {
-  masterInfo.innerHTML = request.response.replace(/<[^>]*>/g, '');
-}
-request.send();
-let drequest = new XMLHttpRequest();
-drequest.open('GET', 'http://rdzsonde.mooo.com/dev2/update-info.html');
-drequest.onload = function() {
-  develInfo.innerHTML= drequest.response.replace(/<[^>]*>/g, '');;
-}
-drequest.send();
+const versionUrl = 'https://andriux26.github.io/rdz_ttgo_sonde/update-info.html?t=' + Date.now();
+fetch(versionUrl, { cache: 'no-store' })
+  .then(response => {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.text();
+  })
+  .then(text => {
+    develInfo.textContent = text.replace(/<[^>]*>/g, '').trim();
+  })
+  .catch(error => {
+    develInfo.textContent = 'Nepavyko patikrinti: ' + error.message;
+  });
 </script>
 </body></html>
