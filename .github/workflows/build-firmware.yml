@@ -47,7 +47,7 @@ jobs:
 
           text = text.replace(
               '#include <WiFi.h>\n',
-              '#include <WiFi.h>\n#include <NetworkClientSecure.h>\n',
+              '#include <WiFi.h>\n#include <WiFiClientSecure.h>\n',
               1,
           )
 
@@ -65,7 +65,7 @@ jobs:
 
           text = text.replace(
               'WiFiClient client;',
-              'NetworkClientSecure client;',
+              'WiFiClientSecure client;',
               1,
           )
 
@@ -79,10 +79,10 @@ jobs:
           )
 
           required = [
-              '#include <NetworkClientSecure.h>',
+              '#include <WiFiClientSecure.h>',
               'const char *updateHost = "andriux26.github.io";',
               'int updatePort = 443;',
-              'NetworkClientSecure client;',
+              'WiFiClientSecure client;',
               'client.setInsecure();',
           ]
           missing = [item for item in required if item not in text]
