@@ -42,15 +42,24 @@ jobs:
 
       - name: Prepare latest firmware directory
         run: |
-          mkdir -p firmware
+          mkdir -p firmware docs
           cp .pio/build/ttgo-lora32/firmware-image.bin firmware/firmware-image.bin
           cp .pio/build/ttgo-lora32/firmware.bin firmware/firmware.bin
           cp .pio/build/ttgo-lora32/littlefs.bin firmware/littlefs.bin
           cp .pio/build/ttgo-lora32/fonts.bin firmware/fonts.bin
           cp .pio/build/ttgo-lora32/firmware-image.bin docs/firmware-image.bin
-          printf '%s\n' "${GITHUB_SHA}" > firmware/version.txt
-          printf '{\n  "branch": "dev2",\n  "commit": "%s",\n  "built_at_utc": "%s"\n}\n' \
-            "${GITHUB_SHA}" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > firmware/build-info.json
+
+          BASE_VERSION=$(sed -n 's/.*version_id = "\([^"]*\)".*/\1/p' RX_FSK/version.h)
+          FS_MAJOR=$(sed -n 's/.*FS_MAJOR=\([0-9]*\).*/\1/p' RX_FSK/version.h)
+          FS_MINOR=$(sed -n 's/.*FS_MINOR=\([0-9]*\).*/\1/p' RX_FSK/version.h)
+          FS_LETTER=$(printf "\\$(printf '%03o' $((FS_MAJOR + 64)))")
+          SHORT_SHA=$(printf '%s' "${GITHUB_SHA}" | cut -c1-7)
+          DISPLAY_VERSION="${BASE_VERSION}-${SHORT_SHA}-${FS_LETTER}${FS_MINOR}"
+
+          printf '%s\n' "${DISPLAY_VERSION}" > firmware/version.txt
+          printf '%s\n' "${DISPLAY_VERSION}" > docs/update-info.html
+          printf '{\n  "version": "%s",\n  "branch": "dev2",\n  "commit": "%s",\n  "built_at_utc": "%s"\n}\n' \
+            "${DISPLAY_VERSION}" "${GITHUB_SHA}" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > firmware/build-info.json
 
       - name: Save latest firmware in repository
         run: |
